@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>L5-S1 Recovery Program</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        #root { max-width: 600px; margin: 0 auto; padding: 16px; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.02); }
+        }
+        .pulse { animation: pulse 1s infinite; }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        
+        .exercise-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .timer-ring {
+            transition: stroke-dashoffset 0.5s linear;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // Image mapping for each exercise
+        const exerciseImages = {
+            proneLying: 'images/Gemini_Generated_Image_iqa9dmiqa9dmiqa9.png',
+            sphinxPose: 'images/Gemini_Generated_Image_qxeby0qxeby0qxeb.png',
+            pronePressUp: 'images/Gemini_Generated_Image_g3umuzg3umuzg3um.png',
+            abdominalDrawIn: 'images/Gemini_Generated_Image_x35vvwx35vvwx35v.png',
+            abdominalDrawIn2: 'images/Gemini_Generated_Image_obuqzxobuqzxobuq.png',
+            pelvicTilt: 'images/Gemini_Generated_Image_pljma4pljma4pljm.png',
+            pelvicTilt2: 'images/Gemini_Generated_Image_u8kl98u8kl98u8kl.png',
+            gluteBridge: 'images/Gemini_Generated_Image_s5fym8s5fym8s5fy.png',
+            singleLegBridge: 'images/Gemini_Generated_Image_3w471i3w471i3w47.png',
+            singleLegBridge2: 'images/Gemini_Generated_Image_mokud7mokud7moku.png',
+            gentleWalking: 'images/Gemini_Generated_Image_cqs3rfcqs3rfcqs3.png',
+            walkingPosture: 'images/Gemini_Generated_Image_57bnsf57bnsf57bn.png',
+            kneeToChest: 'images/Gemini_Generated_Image_5tf9em5tf9em5tf9.png',
+            kneeToChest2: 'images/Gemini_Generated_Image_8mevez8mevez8mev.png',
+            piriformisStretch: 'images/Gemini_Generated_Image_t86txtt86txtt86t.png',
+            piriformisStretch2: 'images/Gemini_Generated_Image_axip9laxip9laxip.png',
+            sciaticNerveGlide: 'images/Gemini_Generated_Image_egao2qegao2qegao.png',
+            sciaticNerveSlider: 'images/Gemini_Generated_Image_1lu8q41lu8q41lu8.png',
+            heelSlides: 'images/Gemini_Generated_Image_ipuvtfipuvtfipuv.png',
+            heelSlides2: 'images/Gemini_Generated_Image_omzl8omzl8omzl8o.png',
+            birdDog: 'images/Gemini_Generated_Image_wmqqpgwmqqpgwmqq.png',
+            birdDog2: 'images/Gemini_Generated_Image_jzcejfjzcejfjzce.png',
+            frontPlank: 'images/Gemini_Generated_Image_7q57tg7q57tg7q57.png',
+            frontPlank2: 'images/Gemini_Generated_Image_4vcjsi4vcjsi4vcj.png',
+            sidePlank: 'images/Gemini_Generated_Image_kn5cttkn5cttkn5c.png',
+            sidePlank2: 'images/Gemini_Generated_Image_w2qbnww2qbnww2qb.png',
+            hipHinge: 'images/Gemini_Generated_Image_l7qcg3l7qcg3l7qc.png',
+            hipHinge2: 'images/Gemini_Generated_Image_c0kl96c0kl96c0kl.png',
+            clamshell: 'images/Gemini_Generated_Image_gvo1tfgvo1tfgvo1.png',
+            clamshell2: 'images/Gemini_Generated_Image_k4ruu7k4ruu7k4ru.png',
+            wallSquat: 'images/Gemini_Generated_Image_h8ri9gh8ri9gh8ri.png',
+            wallSquat2: 'images/Gemini_Generated_Image_tsu95rtsu95rtsu9.png',
+            bodyweightSquat: 'images/Gemini_Generated_Image_5j816o5j816o5j81.png',
+            bodyweightSquat2: 'images/Gemini_Generated_Image_zdasozzdasozzdas.png',
+            forwardLunge: 'images/Gemini_Generated_Image_vgtxfovgtxfovgtx.png',
+            forwardLunge2: 'images/Gemini_Generated_Image_vgtxfovgtxfovgtx_1.png',
+            lungeAnatomy: 'images/Gemini_Generated_Image_ee4m8qee4m8qee4m.png',
+            hipFlexorStretch: 'images/Gemini_Generated_Image_9xz7ph9xz7ph9xz7.png',
+            hipFlexorStretch2: 'images/Gemini_Generated_Image_ayhxuvayhxuvayhx.png',
+            standingBackExtension: 'images/Gemini_Generated_Image_momvyxmomvyxmomv.png',
+            standingBackExtension2: 'images/Gemini_Generated_Image_q443wjq443wjq443.png',
+        };
+
+        // Exercise definitions with image references
+        const exerciseData = {
+            proneLying: { 
+                name: 'Prone Lying', 
+                duration: 180, 
+                type: 'hold', 
+                sets: 1, 
+                reps: 1, 
+                instructions: 'Lie face-down, arms at sides, head turned to one side. Allow your lower back to completely relax. This position helps the disc migrate back into place.',
+                target: 'Disc unloading & relaxation',
+                image: exerciseImages.proneLying,
+                tips: ['Keep hips flat on floor', 'Breathe deeply', 'Relax completely']
+            },
+            sphinxPose: { 
+                name: 'Sphinx Pose', 
+                duration: 120, 
+                type: 'hold', 
+                sets: 2, 
+                reps: 1, 
+                instructions: 'Prop yourself on forearms with elbows directly under shoulders. Keep hips on the floor and let your lower back relax into a gentle arch.',
+                target: 'Passive lumbar extension',
+                image: exerciseImages.sphinxPose,
+                tips: ['Elbows under shoulders', 'Hips stay down', 'Chest lifted']
+            },
+            pronePressUp: { 
+                name: 'Prone Press-Up (McKenzie)', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 1, 
+                reps: 10, 
+                instructions: 'From prone position, place hands under shoulders. Push your upper body up while keeping hips on the floor. Let your back sag. Hold 1-2 seconds at top, then lower.',
+                target: 'McKenzie extension - centralizes disc',
+                image: exerciseImages.pronePressUp,
+                tips: ['Keep hips on floor', 'Arms do the work', 'Let back sag naturally']
+            },
+            abdominalDrawIn: { 
+                name: 'Abdominal Drawing-In', 
+                duration: 10, 
+                type: 'reps', 
+                sets: 3, 
+                reps: 10, 
+                instructions: 'Lie on back with knees bent. Gently draw belly button toward spine without flattening back or holding breath. Hold 10 seconds.',
+                target: 'Deep core activation (transverse abdominis)',
+                image: exerciseImages.abdominalDrawIn,
+                tips: ['Breathe normally', 'Gentle contraction', 'Don\'t flatten back']
+            },
+            pelvicTilt: { 
+                name: 'Pelvic Tilt', 
+                duration: 5, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Lie on back with knees bent. Gently flatten your lower back into the floor by tilting your pelvis. Hold 5 seconds, then release.',
+                target: 'Lumbar mobility & core control',
+                image: exerciseImages.pelvicTilt,
+                tips: ['Contract abdominals', 'Press lower back down', 'Hold 5-10 seconds']
+            },
+            gluteBridge: { 
+                name: 'Glute Bridge', 
+                duration: 5, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Lie on back with knees bent, feet flat. Squeeze glutes and lift hips toward ceiling. Keep spine neutral. Hold at top for 5 seconds.',
+                target: 'Glute activation & hip extension',
+                image: exerciseImages.gluteBridge,
+                tips: ['Squeeze glutes at top', 'Don\'t arch lower back', 'Neutral spine throughout']
+            },
+            singleLegBridge: { 
+                name: 'Single Leg Bridge', 
+                duration: 5, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 8, 
+                instructions: 'From bridge position, extend one leg. Maintain level hips as you lift and lower. This challenges core stability and glute strength.',
+                target: 'Unilateral glute strength & core stability',
+                image: exerciseImages.singleLegBridge,
+                tips: ['Keep hips level', 'Don\'t rotate pelvis', 'Control the movement']
+            },
+            gentleWalking: { 
+                name: 'Gentle Walking', 
+                duration: 600, 
+                type: 'hold', 
+                sets: 1, 
+                reps: 1, 
+                instructions: 'Walk on flat, even terrain at a comfortable conversational pace. Maintain upright posture with gentle arm swing. Start with 10 minutes, progress gradually.',
+                target: 'Circulation, disc nutrition, gentle movement',
+                image: exerciseImages.gentleWalking,
+                tips: ['Upright posture', 'Natural arm swing', 'Flat terrain']
+            },
+            kneeToChest: { 
+                name: 'Knee to Chest Stretch', 
+                duration: 30, 
+                type: 'hold', 
+                sets: 2, 
+                reps: 1, 
+                instructions: 'Lie on back. Pull one knee toward chest while keeping other leg bent or extended. Hold for 30 seconds. Repeat on other side.',
+                target: 'Lower back & hip stretch',
+                image: exerciseImages.kneeToChest,
+                tips: ['Keep shoulders down', 'Breathe into stretch', 'Don\'t force']
+            },
+            piriformisStretch: { 
+                name: 'Piriformis Stretch', 
+                duration: 30, 
+                type: 'hold', 
+                sets: 2, 
+                reps: 1, 
+                instructions: 'Lie on back. Cross affected ankle over opposite knee. Pull uncrossed leg toward chest. Feel stretch deep in buttock.',
+                target: 'Piriformis muscle - relieves sciatic pressure',
+                image: exerciseImages.piriformisStretch,
+                tips: ['Cross ankle over knee', 'Pull thigh toward chest', 'Hold 30-60 seconds']
+            },
+            sciaticNerveGlide: { 
+                name: 'Sciatic Nerve Glide', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Sit on chair edge. Extend one leg, flex foot up. Lean forward slightly as you point toes down. Alternate slowly to glide the nerve.',
+                target: 'Nerve mobility - reduces sciatic tension',
+                image: exerciseImages.sciaticNerveGlide,
+                tips: ['Gentle movements', 'Don\'t force', 'Stop if sharp pain']
+            },
+            heelSlides: { 
+                name: 'Heel Slides', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 15, 
+                instructions: 'Lie on back with legs extended. Slowly slide one heel toward buttocks, bending knee. Slide back to start. Keep back flat.',
+                target: 'Hip & knee mobility, gentle core activation',
+                image: exerciseImages.heelSlides,
+                tips: ['Keep back flat', 'Slide heel to buttocks', 'Control the movement']
+            },
+            birdDog: { 
+                name: 'Bird Dog', 
+                duration: 5, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Start on hands and knees. Extend opposite arm and leg while keeping spine neutral. Hold 5 seconds, then switch sides.',
+                target: 'Core stability & spinal control',
+                image: exerciseImages.birdDog,
+                tips: ['Keep spine neutral', 'Don\'t rotate hips', 'Engage core']
+            },
+            frontPlank: { 
+                name: 'Front Plank', 
+                duration: 30, 
+                type: 'hold', 
+                sets: 3, 
+                reps: 1, 
+                instructions: 'Support body on forearms and toes. Keep body in straight line from head to heels. Engage core, don\'t let hips sag or pike up.',
+                target: 'Core endurance & spinal stability',
+                image: exerciseImages.frontPlank,
+                tips: ['Neutral spine', 'Engage glutes', 'Don\'t hold breath']
+            },
+            sidePlank: { 
+                name: 'Side Plank', 
+                duration: 20, 
+                type: 'hold', 
+                sets: 2, 
+                reps: 1, 
+                instructions: 'Lie on side, prop up on forearm with elbow under shoulder. Lift hips so body forms straight line. Keep core tight.',
+                target: 'Lateral core stability & hip strength',
+                image: exerciseImages.sidePlank,
+                tips: ['Stack hips', 'Shoulder over elbow', 'Keep body straight']
+            },
+            hipHinge: { 
+                name: 'Hip Hinge', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 12, 
+                instructions: 'Stand with slight knee bend. Push hips back while keeping spine neutral. Feel stretch in hamstrings. Return by squeezing glutes.',
+                target: 'Hip mobility & proper lifting mechanics',
+                image: exerciseImages.hipHinge,
+                tips: ['Bend at hips, not back', 'Knees slightly bent', 'Neutral spine']
+            },
+            clamshell: { 
+                name: 'Clamshell', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 3, 
+                reps: 15, 
+                instructions: 'Lie on side with knees bent 45°, feet together. Keep feet touching as you lift top knee like a clamshell opening. Don\'t rotate pelvis.',
+                target: 'Gluteus medius - hip stability',
+                image: exerciseImages.clamshell,
+                tips: ['Keep feet together', 'Don\'t rotate pelvis', 'Control the movement']
+            },
+            wallSquat: { 
+                name: 'Wall Squat', 
+                duration: 30, 
+                type: 'hold', 
+                sets: 3, 
+                reps: 1, 
+                instructions: 'Stand with back against wall. Slide down until thighs are parallel to floor, knees at 90°. Keep back flat against wall.',
+                target: 'Quad strength & core stability',
+                image: exerciseImages.wallSquat,
+                tips: ['Knees at 90°', 'Back flat on wall', 'Weight in heels']
+            },
+            bodyweightSquat: { 
+                name: 'Bodyweight Squat', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 3, 
+                reps: 12, 
+                instructions: 'Stand with feet shoulder-width apart. Lower by bending hips and knees, keeping chest up. Go as low as comfortable without back rounding.',
+                target: 'Leg strength & functional movement',
+                image: exerciseImages.bodyweightSquat,
+                tips: ['Chest up', 'Knees track over toes', 'Weight in heels']
+            },
+            forwardLunge: { 
+                name: 'Forward Lunge', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Step forward into lunge position. Front knee stays over ankle. Lower back knee toward floor. Push back to start.',
+                target: 'Leg strength & hip flexibility',
+                image: exerciseImages.forwardLunge,
+                tips: ['Knee over ankle', 'Engage core', 'Controlled descent']
+            },
+            hipFlexorStretch: { 
+                name: 'Hip Flexor Stretch', 
+                duration: 30, 
+                type: 'hold', 
+                sets: 2, 
+                reps: 1, 
+                instructions: 'Kneel on one knee with other foot forward. Shift hips forward while squeezing back glute. Keep torso upright. Feel stretch in front of hip.',
+                target: 'Hip flexor flexibility - reduces lumbar stress',
+                image: exerciseImages.hipFlexorStretch,
+                tips: ['Squeeze back glute', 'Keep torso upright', 'Push hips forward']
+            },
+            standingBackExtension: { 
+                name: 'Standing Back Extension', 
+                duration: 3, 
+                type: 'reps', 
+                sets: 2, 
+                reps: 10, 
+                instructions: 'Stand with hands on lower back. Gently lean backward, extending through the lower spine. Hold briefly at end range.',
+                target: 'Lumbar extension mobility',
+                image: exerciseImages.standingBackExtension,
+                tips: ['Hands support lower back', 'Gentle extension', 'Don\'t overdo it']
+            },
+        };
+
+        // Weekly program structure
+        const weeklyPrograms = {
+            1: {
+                title: 'Week 1-2: Pain Relief & Foundation',
+                description: 'Focus on positions and exercises that reduce pain and begin core activation.',
+                morning: ['proneLying', 'sphinxPose', 'pronePressUp'],
+                midday: ['abdominalDrawIn', 'pelvicTilt', 'kneeToChest'],
+                evening: ['piriformisStretch', 'gentleWalking', 'proneLying']
+            },
+            2: {
+                title: 'Week 3-4: Core Stability',
+                description: 'Progress core activation and add gentle nerve glides.',
+                morning: ['pronePressUp', 'abdominalDrawIn', 'gluteBridge'],
+                midday: ['heelSlides', 'sciaticNerveGlide', 'pelvicTilt'],
+                evening: ['piriformisStretch', 'hipFlexorStretch', 'gentleWalking']
+            },
+            3: {
+                title: 'Week 5-6: Stability & Strength',
+                description: 'Increase core endurance and add hip strengthening.',
+                morning: ['birdDog', 'gluteBridge', 'frontPlank'],
+                midday: ['clamshell', 'heelSlides', 'sciaticNerveGlide'],
+                evening: ['hipFlexorStretch', 'piriformisStretch', 'kneeToChest']
+            },
+            4: {
+                title: 'Week 7-8: Progressive Loading',
+                description: 'Add more challenging exercises and increase duration/reps.',
+                morning: ['birdDog', 'frontPlank', 'sidePlank'],
+                midday: ['wallSquat', 'clamshell', 'hipHinge'],
+                evening: ['piriformisStretch', 'hipFlexorStretch', 'gentleWalking']
+            },
+            5: {
+                title: 'Week 9-10: Functional Strength',
+                description: 'Progress to functional movements and longer holds.',
+                morning: ['frontPlank', 'sidePlank', 'singleLegBridge'],
+                midday: ['bodyweightSquat', 'forwardLunge', 'birdDog'],
+                evening: ['hipFlexorStretch', 'piriformisStretch', 'standingBackExtension']
+            },
+            6: {
+                title: 'Week 11-12: Maintenance & Prevention',
+                description: 'Full program for long-term spine health.',
+                morning: ['frontPlank', 'sidePlank', 'singleLegBridge', 'birdDog'],
+                midday: ['bodyweightSquat', 'forwardLunge', 'wallSquat'],
+                evening: ['hipFlexorStretch', 'piriformisStretch', 'standingBackExtension', 'gentleWalking']
+            }
+        };
+
+        // Sound generation
+        const playSound = (type) => {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                if (type === 'tick') {
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.05);
+                } else if (type === 'warning') {
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.value = 0.2;
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'complete') {
+                    const freqs = [523, 659, 784];
+                    freqs.forEach((freq, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.value = 0.15;
+                        osc.start(audioCtx.currentTime + i * 0.15);
+                        osc.stop(audioCtx.currentTime + i * 0.15 + 0.2);
+                    });
+                }
+            } catch (e) {
+                console.log('Audio not available');
+            }
+        };
+
+        // Timer Component
+        const Timer = ({ duration, onComplete, isRunning, onToggle, onReset }) => {
+            const [timeLeft, setTimeLeft] = useState(duration);
+            const [soundEnabled, setSoundEnabled] = useState(true);
+            
+            useEffect(() => {
+                setTimeLeft(duration);
+            }, [duration]);
+            
+            useEffect(() => {
+                if (!isRunning || timeLeft <= 0) return;
+                
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => {
+                        const newTime = prev - 1;
+                        if (soundEnabled) {
+                            if ([10, 5, 4, 3, 2, 1].includes(newTime)) {
+                                playSound('warning');
+                            }
+                        }
+                        if (newTime <= 0) {
+                            if (soundEnabled) playSound('complete');
+                            onComplete?.();
+                        }
+                        return Math.max(0, newTime);
+                    });
+                }, 1000);
+                
+                return () => clearInterval(timer);
+            }, [isRunning, timeLeft, onComplete, soundEnabled]);
+            
+            const handleReset = () => {
+                setTimeLeft(duration);
+                onReset?.();
+            };
+            
+            const progress = duration > 0 ? (timeLeft / duration) * 100 : 0;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const circumference = 2 * Math.PI * 45;
+            const strokeDashoffset = circumference * (1 - progress / 100);
+            
+            const getColor = () => {
+                if (timeLeft <= 5) return '#ef4444';
+                if (timeLeft <= 10) return '#f59e0b';
+                return '#10b981';
+            };
+            
+            return (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <svg width="140" height="140" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="70" cy="70" r="45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+                        <circle 
+                            cx="70" cy="70" r="45" 
+                            fill="none" 
+                            stroke={getColor()} 
+                            strokeWidth="8" 
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                            className="timer-ring"
+                        />
+                    </svg>
+                    <div style={{ 
+                        marginTop: '-100px', 
+                        marginBottom: '60px',
+                        fontSize: '32px', 
+                        fontWeight: 'bold',
+                        color: getColor(),
+                        fontFamily: 'monospace'
+                    }}>
+                        {minutes}:{seconds.toString().padStart(2, '0')}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+                        <button 
+                            onClick={onToggle}
+                            style={{
+                                padding: '12px 24px',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                color: '#fff',
+                                background: isRunning ? '#ef4444' : '#10b981',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {isRunning ? '⏸ Pause' : '▶ Start'}
+                        </button>
+                        <button 
+                            onClick={handleReset}
+                            style={{
+                                padding: '12px 16px',
+                                fontSize: '16px',
+                                color: '#94a3b8',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            ↻ Reset
+                        </button>
+                        <button 
+                            onClick={() => setSoundEnabled(!soundEnabled)}
+                            style={{
+                                padding: '12px 16px',
+                                fontSize: '16px',
+                                color: soundEnabled ? '#10b981' : '#64748b',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {soundEnabled ? '🔊' : '🔇'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Rep Counter Component
+        const RepCounter = ({ exercise, onComplete }) => {
+            const [currentSet, setCurrentSet] = useState(1);
+            const [currentRep, setCurrentRep] = useState(0);
+            const [soundEnabled, setSoundEnabled] = useState(true);
+            
+            const handleRep = () => {
+                if (soundEnabled) playSound('tick');
+                
+                if (currentRep + 1 >= exercise.reps) {
+                    if (currentSet >= exercise.sets) {
+                        if (soundEnabled) playSound('complete');
+                        onComplete?.();
+                        setCurrentSet(1);
+                        setCurrentRep(0);
+                    } else {
+                        if (soundEnabled) playSound('warning');
+                        setCurrentSet(prev => prev + 1);
+                        setCurrentRep(0);
+                    }
+                } else {
+                    setCurrentRep(prev => prev + 1);
+                }
+            };
+            
+            const handleReset = () => {
+                setCurrentSet(1);
+                setCurrentRep(0);
+            };
+            
+            const totalReps = exercise.sets * exercise.reps;
+            const completedReps = (currentSet - 1) * exercise.reps + currentRep;
+            const progress = (completedReps / totalReps) * 100;
+            
+            return (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ marginBottom: '16px' }}>
+                        <span style={{ fontSize: '14px', color: '#94a3b8' }}>Set </span>
+                        <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#60a5fa' }}>{currentSet}</span>
+                        <span style={{ fontSize: '14px', color: '#94a3b8' }}> of {exercise.sets}</span>
+                    </div>
+                    <div style={{ marginBottom: '20px' }}>
+                        <span style={{ fontSize: '14px', color: '#94a3b8' }}>Rep </span>
+                        <span style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>{currentRep}</span>
+                        <span style={{ fontSize: '14px', color: '#94a3b8' }}> / {exercise.reps}</span>
+                    </div>
+                    <div style={{ 
+                        height: '8px', 
+                        background: 'rgba(255,255,255,0.1)', 
+                        borderRadius: '4px',
+                        marginBottom: '20px',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{ 
+                            height: '100%', 
+                            width: `${progress}%`, 
+                            background: 'linear-gradient(90deg, #10b981, #60a5fa)',
+                            borderRadius: '4px',
+                            transition: 'width 0.3s ease'
+                        }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+                        <button 
+                            onClick={handleRep}
+                            style={{
+                                padding: '16px 32px',
+                                fontSize: '18px',
+                                fontWeight: 'bold',
+                                color: '#fff',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                            }}
+                        >
+                            +1 Rep
+                        </button>
+                        <button 
+                            onClick={handleReset}
+                            style={{
+                                padding: '16px',
+                                fontSize: '16px',
+                                color: '#94a3b8',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            ↻ Reset
+                        </button>
+                        <button 
+                            onClick={() => setSoundEnabled(!soundEnabled)}
+                            style={{
+                                padding: '16px',
+                                fontSize: '16px',
+                                color: soundEnabled ? '#10b981' : '#64748b',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {soundEnabled ? '🔊' : '🔇'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Exercise Card Component
+        const ExerciseCard = ({ exerciseId, exercise, isCompleted, onComplete }) => {
+            const [expanded, setExpanded] = useState(false);
+            const [timerRunning, setTimerRunning] = useState(false);
+            
+            return (
+                <div 
+                    className="slide-in"
+                    style={{
+                        background: isCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${isCompleted ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)'}`,
+                        borderRadius: '16px',
+                        marginBottom: '12px',
+                        overflow: 'hidden',
+                        transition: 'all 0.3s ease'
+                    }}
+                >
+                    <div 
+                        onClick={() => setExpanded(!expanded)}
+                        style={{
+                            padding: '16px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                        }}
+                    >
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: isCompleted ? '#10b981' : 'rgba(255,255,255,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            flexShrink: 0
+                        }}>
+                            {isCompleted ? '✓' : '○'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                                {exercise.name}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+                                {exercise.type === 'hold' 
+                                    ? `${exercise.sets}x ${Math.floor(exercise.duration / 60)}:${(exercise.duration % 60).toString().padStart(2, '0')} hold`
+                                    : `${exercise.sets}x${exercise.reps} reps`
+                                }
+                                {' • '}{exercise.target}
+                            </div>
+                        </div>
+                        <div style={{ 
+                            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.3s ease',
+                            fontSize: '20px',
+                            color: '#64748b'
+                        }}>
+                            ▼
+                        </div>
+                    </div>
+                    
+                    {expanded && (
+                        <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            {/* Exercise Image */}
+                            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                                <img 
+                                    src={exercise.image} 
+                                    alt={exercise.name}
+                                    className="exercise-image"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Instructions */}
+                            <div style={{ 
+                                background: 'rgba(59, 130, 246, 0.1)', 
+                                borderRadius: '12px', 
+                                padding: '14px',
+                                marginBottom: '16px'
+                            }}>
+                                <div style={{ fontWeight: '600', color: '#60a5fa', marginBottom: '8px', fontSize: '14px' }}>
+                                    📋 Instructions
+                                </div>
+                                <div style={{ color: '#e2e8f0', fontSize: '14px', lineHeight: '1.6' }}>
+                                    {exercise.instructions}
+                                </div>
+                            </div>
+                            
+                            {/* Tips */}
+                            {exercise.tips && (
+                                <div style={{ 
+                                    background: 'rgba(251, 191, 36, 0.1)', 
+                                    borderRadius: '12px', 
+                                    padding: '14px',
+                                    marginBottom: '16px'
+                                }}>
+                                    <div style={{ fontWeight: '600', color: '#fbbf24', marginBottom: '8px', fontSize: '14px' }}>
+                                        💡 Key Points
+                                    </div>
+                                    <ul style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
+                                        {exercise.tips.map((tip, i) => (
+                                            <li key={i}>{tip}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {/* Timer or Rep Counter */}
+                            {exercise.type === 'hold' ? (
+                                <Timer 
+                                    duration={exercise.duration}
+                                    isRunning={timerRunning}
+                                    onToggle={() => setTimerRunning(!timerRunning)}
+                                    onReset={() => setTimerRunning(false)}
+                                    onComplete={() => {
+                                        setTimerRunning(false);
+                                        onComplete?.();
+                                    }}
+                                />
+                            ) : (
+                                <RepCounter 
+                                    exercise={exercise}
+                                    onComplete={onComplete}
+                                />
+                            )}
+                            
+                            {/* Manual Complete Button */}
+                            {!isCompleted && (
+                                <button
+                                    onClick={onComplete}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        marginTop: '12px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        color: '#94a3b8',
+                                        fontSize: '14px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Mark as Complete ✓
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [currentWeek, setCurrentWeek] = useState(1);
+            const [currentSession, setCurrentSession] = useState('morning');
+            const [completedExercises, setCompletedExercises] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('l5s1-completed');
+                    return saved ? JSON.parse(saved) : {};
+                } catch {
+                    return {};
+                }
+            });
+            const [view, setView] = useState('program');
+            
+            useEffect(() => {
+                localStorage.setItem('l5s1-completed', JSON.stringify(completedExercises));
+            }, [completedExercises]);
+            
+            const program = weeklyPrograms[currentWeek];
+            const sessionExercises = program[currentSession] || [];
+            
+            const handleComplete = (exerciseId) => {
+                const key = `${currentWeek}-${currentSession}-${exerciseId}`;
+                setCompletedExercises(prev => ({ ...prev, [key]: true }));
+            };
+            
+            const isCompleted = (exerciseId) => {
+                const key = `${currentWeek}-${currentSession}-${exerciseId}`;
+                return completedExercises[key] || false;
+            };
+            
+            const sessionProgress = sessionExercises.length > 0 
+                ? (sessionExercises.filter(id => isCompleted(id)).length / sessionExercises.length) * 100 
+                : 0;
+            
+            const totalWeekExercises = ['morning', 'midday', 'evening'].reduce((sum, session) => {
+                return sum + (program[session]?.length || 0);
+            }, 0);
+            
+            const completedWeekExercises = ['morning', 'midday', 'evening'].reduce((sum, session) => {
+                return sum + (program[session]?.filter(id => {
+                    const key = `${currentWeek}-${session}-${id}`;
+                    return completedExercises[key];
+                }).length || 0);
+            }, 0);
+            
+            const weekProgress = totalWeekExercises > 0 
+                ? (completedWeekExercises / totalWeekExercises) * 100 
+                : 0;
+            
+            return (
+                <div style={{ paddingBottom: '100px' }}>
+                    {/* Header */}
+                    <div style={{ 
+                        textAlign: 'center', 
+                        padding: '20px 0',
+                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                        marginBottom: '20px'
+                    }}>
+                        <h1 style={{ 
+                            fontSize: '24px', 
+                            fontWeight: '700',
+                            background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            marginBottom: '8px'
+                        }}>
+                            L5-S1 Recovery Program
+                        </h1>
+                        <p style={{ color: '#94a3b8', fontSize: '14px' }}>
+                            12-Week Disc Rehabilitation Protocol
+                        </p>
+                    </div>
+                    
+                    {/* Week Navigation */}
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        marginBottom: '16px'
+                    }}>
+                        <button 
+                            onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
+                            disabled={currentWeek === 1}
+                            style={{
+                                padding: '10px 16px',
+                                background: currentWeek === 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: currentWeek === 1 ? '#4b5563' : '#fff',
+                                fontSize: '18px',
+                                cursor: currentWeek === 1 ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            ←
+                        </button>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>
+                                Phase {currentWeek}/6
+                            </div>
+                            <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                                {program.title}
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setCurrentWeek(Math.min(6, currentWeek + 1))}
+                            disabled={currentWeek === 6}
+                            style={{
+                                padding: '10px 16px',
+                                background: currentWeek === 6 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: currentWeek === 6 ? '#4b5563' : '#fff',
+                                fontSize: '18px',
+                                cursor: currentWeek === 6 ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            →
+                        </button>
+                    </div>
+                    
+                    {/* Week Description */}
+                    <div style={{ 
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        marginBottom: '20px',
+                        fontSize: '14px',
+                        color: '#c4b5fd'
+                    }}>
+                        {program.description}
+                    </div>
+                    
+                    {/* Progress Bars */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '13px', color: '#94a3b8' }}>Week Progress</span>
+                            <span style={{ fontSize: '13px', color: '#10b981' }}>{Math.round(weekProgress)}%</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ 
+                                height: '100%', 
+                                width: `${weekProgress}%`, 
+                                background: 'linear-gradient(90deg, #10b981, #60a5fa)',
+                                borderRadius: '3px',
+                                transition: 'width 0.5s ease'
+                            }} />
+                        </div>
+                    </div>
+                    
+                    {/* Session Tabs */}
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: '8px', 
+                        marginBottom: '20px',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '12px',
+                        padding: '6px'
+                    }}>
+                        {[
+                            { id: 'morning', label: '🌅 Morning', icon: '☀️' },
+                            { id: 'midday', label: '🌤️ Midday', icon: '🌤️' },
+                            { id: 'evening', label: '🌙 Evening', icon: '🌙' }
+                        ].map(session => {
+                            const exercises = program[session.id] || [];
+                            const completed = exercises.filter(id => {
+                                const key = `${currentWeek}-${session.id}-${id}`;
+                                return completedExercises[key];
+                            }).length;
+                            
+                            return (
+                                <button
+                                    key={session.id}
+                                    onClick={() => setCurrentSession(session.id)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px 8px',
+                                        background: currentSession === session.id 
+                                            ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3))'
+                                            : 'transparent',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        color: currentSession === session.id ? '#fff' : '#94a3b8',
+                                        fontSize: '13px',
+                                        fontWeight: currentSession === session.id ? '600' : '400',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    <div>{session.label}</div>
+                                    <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
+                                        {completed}/{exercises.length} done
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    
+                    {/* Session Progress */}
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '13px', color: '#94a3b8' }}>Session Progress</span>
+                            <span style={{ fontSize: '13px', color: '#60a5fa' }}>{Math.round(sessionProgress)}%</span>
+                        </div>
+                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ 
+                                height: '100%', 
+                                width: `${sessionProgress}%`, 
+                                background: '#60a5fa',
+                                borderRadius: '2px',
+                                transition: 'width 0.5s ease'
+                            }} />
+                        </div>
+                    </div>
+                    
+                    {/* Exercise List */}
+                    <div>
+                        {sessionExercises.map((exerciseId, index) => {
+                            const exercise = exerciseData[exerciseId];
+                            if (!exercise) return null;
+                            
+                            return (
+                                <ExerciseCard
+                                    key={`${exerciseId}-${index}`}
+                                    exerciseId={exerciseId}
+                                    exercise={exercise}
+                                    isCompleted={isCompleted(exerciseId)}
+                                    onComplete={() => handleComplete(exerciseId)}
+                                />
+                            );
+                        })}
+                    </div>
+                    
+                    {/* Quick Relief Section */}
+                    <div style={{ 
+                        marginTop: '24px',
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(251, 146, 60, 0.1))',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: '16px',
+                        padding: '16px'
+                    }}>
+                        <div style={{ fontWeight: '700', color: '#f87171', marginBottom: '12px', fontSize: '16px' }}>
+                            ⚡ Quick Relief Protocol
+                        </div>
+                        <div style={{ color: '#fecaca', fontSize: '14px', lineHeight: '1.8' }}>
+                            <strong>Experiencing a flare-up?</strong><br/>
+                            1. Prone lying position (5-10 min)<br/>
+                            2. Gentle prone press-ups (10 reps)<br/>
+                            3. Walking (5-10 min)<br/>
+                            4. Avoid sitting - stand or lie down<br/>
+                            5. Ice for 15-20 min if acute
+                        </div>
+                    </div>
+                    
+                    {/* Reset Progress */}
+                    <button
+                        onClick={() => {
+                            if (confirm('Reset all progress? This cannot be undone.')) {
+                                setCompletedExercises({});
+                            }
+                        }}
+                        style={{
+                            width: '100%',
+                            marginTop: '24px',
+                            padding: '12px',
+                            background: 'transparent',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: '8px',
+                            color: '#f87171',
+                            fontSize: '14px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Reset All Progress
+                    </button>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
